@@ -1,7 +1,8 @@
 package calculator;
 
-public class StringCalculator {
+public final class StringCalculator {
 
+  private StringCalculator() {}
   /**
    * 쉼표를 기준으로 문자열을 분리하는 메서드
    * 입력이 null/빈 문자열인 경우 빈 배열을 반환
@@ -11,5 +12,16 @@ public class StringCalculator {
       return new String[0];
     }
     return s.split(",");
+  }
+
+  /**
+   * 콜론을 기준으로 문자열을 분리하는 메서드
+   * 입력이 null/빈 문자열인 경우 빈 배열을 반환
+   */
+  static String[] splitByColon(String s) {
+    if (s == null || s.isEmpty()) {
+      return new String[0];
+    }
+    return s.split(":");
   }
 }
