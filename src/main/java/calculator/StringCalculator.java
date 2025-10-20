@@ -6,12 +6,13 @@ import java.util.regex.Pattern;
 public final class StringCalculator {
 
   private static final Pattern CUSTOM_PATTERN = Pattern.compile("^//(.)\\n(.*)$", Pattern.DOTALL);
-  private static final String DEFAULT_DELIMITER_REGEX = "[,:]";
+  private static final String DEFAULT_MIXED_REGEX = "[,:]";
 
-  private StringCalculator() {}
+  private StringCalculator() {
+  }
+
   /**
-   * 쉼표를 기준으로 문자열을 분리하는 메서드
-   * 입력이 null/빈 문자열인 경우 빈 배열을 반환
+   * 쉼표를 기준으로 문자열을 분리하는 메서드 입력이 null/빈 문자열인 경우 빈 배열을 반환
    */
   static String[] splitByComma(String s) {
     if (s == null || s.isEmpty()) {
@@ -21,8 +22,7 @@ public final class StringCalculator {
   }
 
   /**
-   * 콜론을 기준으로 문자열을 분리하는 메서드
-   * 입력이 null/빈 문자열인 경우 빈 배열을 반환
+   * 콜론을 기준으로 문자열을 분리하는 메서드 입력이 null/빈 문자열인 경우 빈 배열을 반환
    */
   static String[] splitByColon(String s) {
     if (s == null || s.isEmpty()) {
@@ -52,6 +52,24 @@ public final class StringCalculator {
     return numbersPart.split(regex);
   }
 
+  static String[] tokenizeDefault(String s) {
+    if (s == null || s.isEmpty())
+      return new String[0];
+
+    boolean hasComma = s.indexOf(',') >= 0;
+    boolean hasColon = s.indexOf(':') >= 0;
+
+    if (hasComma && !hasColon)
+      return splitByComma(s);
+    if (!hasComma && hasColon)
+      return splitByColon(s);
+    if (hasComma && hasColon)
+      return s.split(DEFAULT_MIXED_REGEX);
+
+    // 구분자 없음 → 단일 토큰 반환
+    return new String[]{s};
+  }
+
   public static int add(String input) {
     if (input == null || input.isEmpty()) {
       return 0;
@@ -59,19 +77,20 @@ public final class StringCalculator {
 
     String[] tokens;
     if (input.startsWith("//")) {
-      tokens = splitByCustom(input); // 형식 불량이면 예외
+      tokens = splitByCustom(input); // 커스텀 형식 검증 포함
     } else {
-      tokens = input.split(DEFAULT_DELIMITER_REGEX);
+      tokens = tokenizeDefault(input); // ← 여기서 쉼표/콜론 전용 메서드들이 실제로 사용됨
     }
 
-    if (tokens.length == 0) {
+    if (tokens.length == 0)
       return 0;
-    }
 
+    // (원래대로) 검증 + 합산
     long sum = 0L;
-    for (String token : tokens) {
-      InputValidation.requireNumberToken(token);
-      int value = InputValidation.parsePositive(token);
+    for (int i = 0; i < tokens.length; i++) {
+      // 선택: 공백 허용 시 tokens[i] = tokens[i].trim();
+      InputValidation.requireNumberToken(tokens[i]);
+      int value = InputValidation.parsePositive(tokens[i]);
       sum += value;
       if (sum > Integer.MAX_VALUE) {
         throw new IllegalArgumentException("합이 int 범위를 초과했습니다.");
