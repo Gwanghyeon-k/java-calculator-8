@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 public final class StringCalculator {
 
   private static final Pattern CUSTOM_PATTERN = Pattern.compile("^//(.)\\n(.*)$", Pattern.DOTALL);
+  private static final String DEFAULT_DELIMITER_REGEX = "[,:]";
 
   private StringCalculator() {}
   /**
@@ -49,5 +50,33 @@ public final class StringCalculator {
     }
     String regex = Pattern.quote(delimiter);
     return numbersPart.split(regex);
+  }
+
+  public static int add(String input) {
+    if (input == null || input.isEmpty()) {
+      return 0;
+    }
+
+    String[] tokens;
+    if (input.startsWith("//")) {
+      tokens = splitByCustom(input); // 형식 불량이면 예외
+    } else {
+      tokens = input.split(DEFAULT_DELIMITER_REGEX);
+    }
+
+    if (tokens.length == 0) {
+      return 0;
+    }
+
+    long sum = 0L;
+    for (String token : tokens) {
+      InputValidation.requireNumberToken(token);
+      int value = InputValidation.parsePositive(token);
+      sum += value;
+      if (sum > Integer.MAX_VALUE) {
+        throw new IllegalArgumentException("합이 int 범위를 초과했습니다.");
+      }
+    }
+    return (int) sum;
   }
 }
