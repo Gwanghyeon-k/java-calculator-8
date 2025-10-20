@@ -4,9 +4,7 @@ public final class InputValidation {
   private InputValidation() {}
 
   static void requireNumberToken(String s) {
-    if (s == null || s.isEmpty()) {
-      throw new IllegalArgumentException("빈 토큰은 허용되지 않습니다.");
-    }
+
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       if (c < '0' || c > '9') {

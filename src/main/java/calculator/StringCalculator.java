@@ -3,37 +3,27 @@ package calculator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class StringCalculator {
+final class StringCalculator {
 
   private static final Pattern CUSTOM_PATTERN = Pattern.compile("^//(.)\\n(.*)$", Pattern.DOTALL);
-  private static final String DEFAULT_MIXED_REGEX = "[,:]";
+  // 기본 구분자: 쉼표, 콜론, 개행 지원
+  private static final String DEFAULT_MIXED_REGEX = "[,:\\n]";
 
-  private StringCalculator() {
-  }
+  private StringCalculator() {}
 
-  /**
-   * 쉼표를 기준으로 문자열을 분리하는 메서드 입력이 null/빈 문자열인 경우 빈 배열을 반환
-   */
+  // 유지: 쉼표만
   static String[] splitByComma(String s) {
-    if (s == null || s.isEmpty()) {
-      return new String[0];
-    }
+    if (s == null || s.isEmpty()) return new String[0];
     return s.split(",");
   }
 
-  /**
-   * 콜론을 기준으로 문자열을 분리하는 메서드 입력이 null/빈 문자열인 경우 빈 배열을 반환
-   */
+  // 유지: 콜론만
   static String[] splitByColon(String s) {
-    if (s == null || s.isEmpty()) {
-      return new String[0];
-    }
+    if (s == null || s.isEmpty()) return new String[0];
     return s.split(":");
   }
 
-  /**
-   * 커스텀 구분자를 기준으로 문자열을 분리하는 메서드
-   */
+  // 커스텀: "//x\n" 형태 파싱
   static String[] splitByCustom(String input) {
     if (input == null) {
       throw new IllegalArgumentException("입력이 null입니다.");
@@ -42,32 +32,29 @@ public final class StringCalculator {
     if (!m.matches()) {
       throw new IllegalArgumentException("커스텀 구분자 형식이 올바르지 않습니다.");
     }
-    String delimiter = m.group(1);     // 한 글자
-    String numbersPart = m.group(2);   // 본문
+    String custom = m.group(1);
+    String numbersPart = m.group(2);
 
-    if (numbersPart.isEmpty()) {
-      return new String[0];
-    }
-    String regex = Pattern.quote(delimiter);
+    if (numbersPart.isEmpty()) return new String[0];
+
+    // 커스텀 또는 기본 구분자(, : \n) 모두 허용 → 관대한 파서
+    String regex = "(?:" + Pattern.quote(custom) + "|,|:|\\n)";
     return numbersPart.split(regex);
   }
 
+  // 기본 구분자 토크나이즈(쉼표/콜론/개행 모두)
   static String[] tokenizeDefault(String s) {
-    if (s == null || s.isEmpty())
-      return new String[0];
+    if (s == null || s.isEmpty()) return new String[0];
 
     boolean hasComma = s.indexOf(',') >= 0;
     boolean hasColon = s.indexOf(':') >= 0;
+    boolean hasNewline = s.indexOf('\n') >= 0;
 
-    if (hasComma && !hasColon)
-      return splitByComma(s);
-    if (!hasComma && hasColon)
-      return splitByColon(s);
-    if (hasComma && hasColon)
-      return s.split(DEFAULT_MIXED_REGEX);
+    if (hasComma && !hasColon && !hasNewline) return splitByComma(s);
+    if (!hasComma && hasColon && !hasNewline) return splitByColon(s);
 
-    // 구분자 없음 → 단일 토큰 반환
-    return new String[]{s};
+    // 혼합이거나 개행 포함 → 혼합 정규식 사용
+    return s.split(DEFAULT_MIXED_REGEX);
   }
 
   public static int add(String input) {
@@ -77,18 +64,23 @@ public final class StringCalculator {
 
     String[] tokens;
     if (input.startsWith("//")) {
-      tokens = splitByCustom(input); // 커스텀 형식 검증 포함
+      tokens = splitByCustom(input); // 커스텀 + 기본 혼용 허용
     } else {
-      tokens = tokenizeDefault(input); // ← 여기서 쉼표/콜론 전용 메서드들이 실제로 사용됨
+      tokens = tokenizeDefault(input); // 기본(, : \n)
     }
 
-    if (tokens.length == 0)
-      return 0;
+    if (tokens.length == 0) return 0;
 
-    // (원래대로) 검증 + 합산
     long sum = 0L;
     for (int i = 0; i < tokens.length; i++) {
-      // 선택: 공백 허용 시 tokens[i] = tokens[i].trim();
+      // 공백 허용: 토큰마다 trim
+      tokens[i] = tokens[i].trim();
+
+      // 빈 토큰 방지 (연속 구분자/끝 구분자 등)
+      if (tokens[i].isEmpty()) {
+        throw new IllegalArgumentException("빈 토큰은 허용되지 않습니다.");
+      }
+
       InputValidation.requireNumberToken(tokens[i]);
       int value = InputValidation.parsePositive(tokens[i]);
       sum += value;
